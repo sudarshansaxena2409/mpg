@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { SessionEvent, SessionPresence } from "../types.js";
 
 type Props = {
@@ -110,7 +112,9 @@ export const ChatRoomView: React.FC<Props> = ({
                 </div>
                 <span className="seq-tag">seq #{String(evt.seq)}</span>
               </div>
-              <div className="message-body">{body}</div>
+              <div className="message-body markdown-body">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
+              </div>
             </div>
           );
         })}
