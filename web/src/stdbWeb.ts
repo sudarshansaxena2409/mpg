@@ -77,7 +77,7 @@ export function createSessionWeb(conn: StdbConnection, title: string, roomType =
       .subscriptionBuilder()
       .onApplied(async () => {
         try {
-          await conn.reducers.createSession({ title, roomType });
+          await conn.reducers.createSession({ title });
         } catch (error) {
           fail(error instanceof Error ? error : new Error(String(error)));
         }
@@ -177,21 +177,31 @@ export function subscribeAllArtifacts(
 ) {
   const update = () => {
     try {
-      const rows = [...conn.db.artifact.iter()];
-      onArtifacts(rows as Artifact[]);
+      if (conn?.db?.artifact?.iter) {
+        const rows = [...conn.db.artifact.iter()];
+        onArtifacts(rows as Artifact[]);
+      } else {
+        onArtifacts([]);
+      }
     } catch {
       onArtifacts([]);
     }
   };
 
-  conn.db.artifact.onInsert?.(update);
-  conn.db.artifact.onUpdate?.(update);
-  conn.db.artifact.onDelete?.(update);
+  try {
+    conn.db.artifact?.onInsert?.(update);
+    conn.db.artifact?.onUpdate?.(update);
+    conn.db.artifact?.onDelete?.(update);
 
-  return conn
-    .subscriptionBuilder()
-    .onApplied(() => update())
-    .subscribe("SELECT * FROM Artifact");
+    return conn
+      .subscriptionBuilder()
+      .onApplied(() => update())
+      .onError(() => update())
+      .subscribe("SELECT * FROM Artifact");
+  } catch {
+    update();
+    return { unsubscribe() {} };
+  }
 }
 
 export function subscribeChatRoom(

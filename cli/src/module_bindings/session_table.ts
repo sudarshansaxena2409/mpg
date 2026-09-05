@@ -13,7 +13,6 @@ import {
 export default __t.row({
   id: __t.string().primaryKey(),
   title: __t.string(),
-  roomType: __t.string().name("room_type"),
   status: __t.string(),
   createdAt: __t.timestamp().name("created_at"),
 });

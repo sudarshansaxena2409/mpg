@@ -6,7 +6,6 @@ const session = table(
   {
     id: t.string().primaryKey(),
     title: t.string(),
-    roomType: t.string(),
     status: t.string(),
     createdAt: t.timestamp(),
   }
@@ -118,13 +117,12 @@ function assertEventType(eventType: string) {
 }
 
 export const createSession = spacetimedb.reducer(
-  { title: t.string(), roomType: t.option(t.string()) },
-  (ctx, { title, roomType }) => {
+  { title: t.string() },
+  (ctx, { title }) => {
     const id = makeId("session", ctx, ctx.db.session.count());
     ctx.db.session.insert({
       id,
       title,
-      roomType: roomType ?? "chat",
       status: "running",
       createdAt: ctx.timestamp,
     });

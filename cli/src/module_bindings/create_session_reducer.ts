@@ -12,5 +12,4 @@ import {
 
 export default {
   title: __t.string(),
-  roomType: __t.option(__t.string()).name("room_type"),
 };
