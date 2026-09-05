@@ -311,7 +311,11 @@ export const joinPresence = spacetimedb.reducer(
     color: t.string(),
   },
   (ctx, { sessionId, clientId, authorName, role, color }) => {
-    assertSession(ctx, sessionId);
+    // Do not panic on a stale/unknown session id (e.g. after a DB wipe): a
+    // presence join for a room that no longer exists is a harmless no-op.
+    if (!ctx.db.session.id.find(sessionId)) {
+      return;
+    }
     const existing = ctx.db.sessionPresence.clientId.find(clientId);
     const row = {
       clientId,
