@@ -38,7 +38,11 @@ export function connect(): Promise<StdbConnection> {
   });
 }
 
-export async function createSession(conn: StdbConnection, title: string) {
+export async function createSession(
+  conn: StdbConnection,
+  title: string,
+  roomType: string = "chat"
+) {
   return new Promise<string>((resolve, reject) => {
     let settled = false;
     const seen = new Set<string>();
@@ -90,7 +94,7 @@ export async function createSession(conn: StdbConnection, title: string) {
       .subscriptionBuilder()
       .onApplied(async () => {
         try {
-          await conn.reducers.createSession({ title });
+          await conn.reducers.createSession({ title, roomType });
         } catch (error) {
           fail(error instanceof Error ? error : new Error(String(error)));
         }
