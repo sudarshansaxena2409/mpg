@@ -1,22 +1,28 @@
 :root {
-  --bg-dark: #0f172a;
-  --bg-surface: #1e293b;
-  --bg-elevated: #334155;
-  --bg-hover: #475569;
-  --border-color: #334155;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  
-  --accent-blue: #3b82f6;
-  --accent-blue-bg: rgba(59, 130, 246, 0.15);
-  --accent-green: #10b981;
-  --accent-green-bg: rgba(16, 185, 129, 0.15);
-  --accent-amber: #f59e0b;
-  --accent-amber-bg: rgba(245, 158, 11, 0.15);
-  --accent-red: #ef4444;
-  --accent-red-bg: rgba(239, 68, 68, 0.15);
-  --accent-purple: #8b5cf6;
+  /* React-docs-inspired: deep navy canvas, cool slate surfaces, and a
+     vibrant cyan primary accent for a catchy, modern feel. */
+  --bg-dark: #0b1120;
+  --bg-surface: #131c31;
+  --bg-elevated: #1e293f;
+  --bg-hover: #2a3852;
+  --border-color: #24304a;
+  --text-primary: #f1f5fb;
+  --text-secondary: #9fb0c8;
+  --text-muted: #6b7c99;
+
+  /* Primary = React cyan */
+  --accent-blue: #58c4dc;
+  --accent-blue-bg: rgba(88, 196, 220, 0.16);
+  --accent-green: #34d399;
+  --accent-green-bg: rgba(52, 211, 153, 0.16);
+  --accent-amber: #fbbf24;
+  --accent-amber-bg: rgba(251, 191, 36, 0.16);
+  --accent-red: #fb7185;
+  --accent-red-bg: rgba(251, 113, 133, 0.16);
+  --accent-purple: #a78bfa;
+
+  /* A signature gradient for headers / hero accents */
+  --brand-gradient: linear-gradient(135deg, #58c4dc 0%, #7c8cf8 55%, #a78bfa 100%);
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -82,13 +88,14 @@ body {
 }
 
 .brand-badge {
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-  color: #fff;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 6px;
+  background: var(--brand-gradient);
+  color: #0b1120;
+  font-weight: 800;
+  padding: 5px 11px;
+  border-radius: 8px;
   font-size: 14px;
   letter-spacing: 0.5px;
+  box-shadow: 0 2px 12px rgba(88, 196, 220, 0.35);
 }
 
 .room-title-info {

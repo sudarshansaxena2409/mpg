@@ -191,17 +191,58 @@ export class ProviderEventTranslator {
 
     this.recordedArtifactKeys.add(key);
 
+    const stakeholders = this.resolveStakeholders(artifact.stakeholders);
+
     await recordArtifact(this.conn, {
       artifactType: artifact.artifactType,
       title: artifact.title,
       description: artifact.description,
       status: artifact.status,
-      stakeholdersJson: JSON.stringify(artifact.stakeholders),
+      stakeholdersJson: JSON.stringify(stakeholders),
       // The host supplies traceability: the current chat room + transcript
       // position, so the artifact links back to "this chat".
       sourceChatRoomId: this.sessionId,
       sourceSeq: this.nextSeq,
       createdBy: this.authorName,
+    });
+  }
+
+  // The agent often knows only the role of a participant, so it emits
+  // { name: "PM", role: "PM" }. Repair these using the live presence roster so
+  // stakeholders show real names, e.g. "Falak (PM)".
+  private resolveStakeholders(
+    stakeholders: Array<{ name: string; role: string }>
+  ): Array<{ name: string; role: string }> {
+    // Build role -> real name from current presence in this room.
+    const roleToName = new Map<string, string>();
+    try {
+      for (const p of this.conn.db.sessionPresence.iter()) {
+        if (p.sessionId !== this.sessionId) continue;
+        const role = String(p.role ?? "").trim();
+        const name = String(p.authorName ?? "").trim();
+        // Skip agent runners; prefer human display names.
+        if (!role || !name || role.startsWith("runner")) continue;
+        if (!roleToName.has(role.toLowerCase())) {
+          roleToName.set(role.toLowerCase(), name);
+        }
+      }
+    } catch {
+      // presence cache unavailable — return as-is.
+      return stakeholders;
+    }
+
+    return stakeholders.map((s) => {
+      const role = String(s.role ?? "").trim();
+      const name = String(s.name ?? "").trim();
+      // If the name is missing or is just the role (e.g. "PM" == role "PM"),
+      // substitute the real participant name for that role when we know it.
+      const looksLikeRole =
+        !name || name.toLowerCase() === role.toLowerCase();
+      if (looksLikeRole) {
+        const real = roleToName.get(role.toLowerCase());
+        if (real) return { name: real, role };
+      }
+      return { name: name || role, role };
     });
   }
 }
