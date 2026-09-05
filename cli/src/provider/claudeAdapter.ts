@@ -4,6 +4,7 @@ import type {
   NormalizedProviderEvent,
   ProviderAdapter,
 } from "./ProviderAdapter.js";
+import { AIDLC_FACILITATOR_SYSTEM_PROMPT } from "./persona.js";
 
 export class ClaudeAdapter implements ProviderAdapter {
   private child?: ChildProcessWithoutNullStreams;
@@ -21,6 +22,12 @@ export class ClaudeAdapter implements ProviderAdapter {
       [
         "-p",
         "",
+        "--system-prompt",
+        AIDLC_FACILITATOR_SYSTEM_PROMPT,
+        // The facilitator MAY read design and author artifact documents
+        // (BRD/HLD/decisions), but must never run code or shell commands.
+        "--disallowed-tools",
+        "Bash",
         "--input-format",
         "stream-json",
         "--output-format",
