@@ -28,10 +28,13 @@ export class ClaudeAdapter implements ProviderAdapter {
         "",
         "--system-prompt",
         AIDLC_FACILITATOR_SYSTEM_PROMPT,
-        // The facilitator MAY read design and author artifact documents
-        // (BRD/HLD/decisions), but must never run code or shell commands.
-        "--disallowed-tools",
-        "Bash",
+        // The facilitator is purely conversational: it works from the room's
+        // discussion, not the codebase. Disable ALL tools so it never spends
+        // time reading files or running commands (which caused ~minute-long
+        // stalls). Artifacts are emitted as text blocks and recorded by the
+        // host, so no file tools are needed.
+        "--tools",
+        "",
         "--input-format",
         "stream-json",
         "--output-format",
