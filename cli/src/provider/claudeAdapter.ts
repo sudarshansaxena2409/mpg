@@ -13,6 +13,7 @@ export class ClaudeAdapter implements ProviderAdapter {
   private warmingUp = false;
   private warmupResolve?: () => void;
   private warmupTimeout?: ReturnType<typeof setTimeout>;
+  private warmupPromise?: Promise<void>;
 
   onEvent(cb: (e: NormalizedProviderEvent) => void) {
     this.callbacks.add(cb);
@@ -50,12 +51,13 @@ export class ClaudeAdapter implements ProviderAdapter {
       }
     });
 
-    // Warm up: Claude Code has a multi-second cold start that only begins when
-    // the first turn is written. Trigger it now (during session setup) with a
-    // silent no-op turn and wait for its result, so the user's first real
-    // message gets a fast response instead of paying the boot cost. No onEvent
-    // listeners are attached yet, so this warm-up output is not recorded.
-    await this.warmup();
+    // Warm up in the BACKGROUND: Claude Code has a multi-second cold start
+    // that only begins when the first turn is written. Kick it off now during
+    // session setup without blocking start(), so the host is ready instantly.
+    // sendUserTurn() awaits this before sending a real turn, so a user message
+    // never races the warm-up. No onEvent listeners are attached yet, so the
+    // warm-up output is not recorded.
+    this.warmupPromise = this.warmup();
   }
 
   private warmup(): Promise<void> {
@@ -94,6 +96,11 @@ export class ClaudeAdapter implements ProviderAdapter {
   async sendUserTurn(text: string) {
     if (!this.child || !this.sessionId) {
       throw new Error("Claude adapter has not started");
+    }
+    // Ensure the background warm-up (cold-start boot) has finished before
+    // sending a real turn, so the message isn't interleaved with warm-up.
+    if (this.warmupPromise) {
+      await this.warmupPromise;
     }
     this.child.stdin.write(
       `${JSON.stringify({
