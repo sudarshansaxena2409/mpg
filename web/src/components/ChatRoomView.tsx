@@ -7,6 +7,7 @@ type Props = {
   events: SessionEvent[];
   presences: SessionPresence[];
   highlightSeq?: bigint | null;
+  agentThinking?: boolean;
   onSendMessage: (text: string) => void;
 };
 
@@ -40,6 +41,7 @@ export const ChatRoomView: React.FC<Props> = ({
   events,
   presences,
   highlightSeq,
+  agentThinking,
   onSendMessage,
 }) => {
   const [text, setText] = useState("");
@@ -57,7 +59,7 @@ export const ChatRoomView: React.FC<Props> = ({
       }
     }
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [sortedEvents.length, highlightSeq]);
+  }, [sortedEvents.length, highlightSeq, agentThinking]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,6 +114,23 @@ export const ChatRoomView: React.FC<Props> = ({
             </div>
           );
         })}
+        {agentThinking && (
+          <div className="message-card thinking-card" aria-live="polite">
+            <div className="message-header">
+              <div className="author-info">
+                <span style={{ color: "var(--accent-green)" }}>🤖 AI Agent</span>
+              </div>
+            </div>
+            <div className="message-body thinking-body">
+              <span className="thinking-label">thinking</span>
+              <span className="thinking-dots">
+                <span className="dot" />
+                <span className="dot" />
+                <span className="dot" />
+              </span>
+            </div>
+          </div>
+        )}
         <div ref={transcriptEndRef} />
       </div>
 

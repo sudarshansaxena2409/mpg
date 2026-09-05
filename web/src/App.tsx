@@ -52,6 +52,8 @@ export const App: React.FC = () => {
   const [events, setEvents] = useState<SessionEvent[]>([]);
   const [presences, setPresences] = useState<SessionPresence[]>([]);
   const [tools, setTools] = useState<ToolInvocation[]>([]);
+  const [agentThinking, setAgentThinking] = useState(false);
+  const thinkingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clientIdRef = useRef(`web-${Math.random().toString(36).slice(2, 8)}`);
 
@@ -96,7 +98,21 @@ export const App: React.FC = () => {
     }, 4000);
 
     const sub = subscribeChatRoom(conn, activeRoomId, {
-      onEvents: (evts) => setEvents(evts),
+      onEvents: (evts) => {
+        setEvents((prev) => {
+          // If a new agent message arrived, the agent has finished thinking.
+          const hadAgent = prev.some((e) => e.authorType === "agent");
+          const hasAgent = evts.some((e) => e.authorType === "agent");
+          const newAgentMessage =
+            evts.filter((e) => e.authorType === "agent").length >
+            prev.filter((e) => e.authorType === "agent").length;
+          if (newAgentMessage || (hasAgent && !hadAgent)) {
+            setAgentThinking(false);
+            if (thinkingTimeoutRef.current) clearTimeout(thinkingTimeoutRef.current);
+          }
+          return evts;
+        });
+      },
       onPresences: (p) => setPresences(p),
       onTools: (t) => setTools(t),
     });
@@ -112,6 +128,8 @@ export const App: React.FC = () => {
     setActiveArtifactType(undefined);
     setActiveRoomId(id);
     setHighlightSeq(null);
+    setAgentThinking(false);
+    if (thinkingTimeoutRef.current) clearTimeout(thinkingTimeoutRef.current);
   };
 
   const handleSelectArtifactType = (type: RoomType) => {
@@ -133,6 +151,11 @@ export const App: React.FC = () => {
   const handleSendMessage = (text: string) => {
     if (!conn || !activeRoomId) return;
     sendMessageWeb(conn, activeRoomId, DEFAULT_USER, text);
+    // Show the agent "thinking" indicator until its reply arrives.
+    setAgentThinking(true);
+    if (thinkingTimeoutRef.current) clearTimeout(thinkingTimeoutRef.current);
+    // Safety net: never spin forever if no agent is attached to this room.
+    thinkingTimeoutRef.current = setTimeout(() => setAgentThinking(false), 90000);
   };
 
   const handleViewInChat = (sourceChatRoomId: string, sourceSeq: bigint) => {
@@ -185,6 +208,7 @@ export const App: React.FC = () => {
             events={events}
             presences={presences}
             highlightSeq={highlightSeq}
+            agentThinking={agentThinking}
             onSendMessage={handleSendMessage}
           />
         )}
