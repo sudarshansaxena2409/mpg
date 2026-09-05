@@ -198,11 +198,19 @@ export function subscribeChatRoom(
   conn: StdbConnection,
   sessionId: string,
   callbacks: {
+    onEvent?: (event: SessionEvent) => void;
     onEvents: (events: SessionEvent[]) => void;
     onPresences: (presences: SessionPresence[]) => void;
     onTools: (tools: ToolInvocation[]) => void;
   }
 ) {
+  const handleEventInsert = (_ctx: unknown, row: SessionEvent) => {
+    if (row.sessionId === sessionId) {
+      callbacks.onEvent?.(row);
+      updateEvents();
+    }
+  };
+
   const updateEvents = () => {
     try {
       const rows = [...conn.db.event.iter()].filter((r) => r.sessionId === sessionId);
@@ -224,7 +232,7 @@ export function subscribeChatRoom(
     } catch {}
   };
 
-  conn.db.event.onInsert?.(updateEvents);
+  conn.db.event.onInsert?.(handleEventInsert);
   conn.db.sessionPresence.onInsert?.(updatePresences);
   conn.db.sessionPresence.onUpdate?.(updatePresences);
   conn.db.sessionPresence.onDelete?.(updatePresences);
@@ -235,7 +243,7 @@ export function subscribeChatRoom(
     return `'${val.replaceAll("'", "''")}'`;
   }
 
-  return conn
+  const sub = conn
     .subscriptionBuilder()
     .onApplied(() => {
       updateEvents();
@@ -247,4 +255,11 @@ export function subscribeChatRoom(
       `SELECT * FROM SessionPresence WHERE session_id = ${sqlString(sessionId)}`,
       `SELECT * FROM ToolInvocation WHERE session_id = ${sqlString(sessionId)}`,
     ]);
+
+  return {
+    unsubscribe() {
+      conn.db.event.removeOnInsert?.(handleEventInsert);
+      sub?.unsubscribe?.();
+    },
+  };
 }

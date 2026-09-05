@@ -31,11 +31,18 @@ export const App: React.FC = () => {
   const [activeArtifactType, setActiveArtifactType] = useState<RoomType | undefined>(undefined);
   const [highlightSeq, setHighlightSeq] = useState<bigint | null>(null);
 
+  const [userName, setUserName] = useState<string>(() => localStorage.getItem("mpg_username") || DEFAULT_USER);
+
   const [events, setEvents] = useState<SessionEvent[]>([]);
   const [presences, setPresences] = useState<SessionPresence[]>([]);
   const [tools, setTools] = useState<ToolInvocation[]>([]);
 
   const clientIdRef = useRef(`web-${Math.random().toString(36).slice(2, 8)}`);
+
+  const handleSetUserName = (name: string) => {
+    setUserName(name);
+    localStorage.setItem("mpg_username", name);
+  };
 
   // 1. Initial Connection
   useEffect(() => {
@@ -44,10 +51,15 @@ export const App: React.FC = () => {
         setConn(connection);
         setIsConnected(true);
 
-        subscribeAllRooms(connection, (allRooms) => {
+        subscribeAllRooms(connection, async (allRooms) => {
           setRooms(allRooms);
-          if (allRooms.length > 0 && !activeRoomId) {
-            setActiveRoomId(allRooms[0].id);
+          if (allRooms.length > 0) {
+            setActiveRoomId((prev) => prev || allRooms[0].id);
+          } else {
+            try {
+              const defaultId = await createSessionWeb(connection, "General Workspace", "chat");
+              setActiveRoomId(defaultId);
+            } catch {}
           }
         });
 
@@ -68,7 +80,7 @@ export const App: React.FC = () => {
       conn,
       activeRoomId,
       clientIdRef.current,
-      DEFAULT_USER,
+      userName,
       DEFAULT_ROLE,
       "#3b82f6"
     ).catch(() => {});
@@ -78,6 +90,14 @@ export const App: React.FC = () => {
     }, 4000);
 
     const sub = subscribeChatRoom(conn, activeRoomId, {
+      onEvent: (evt) => {
+        setEvents((prev) => {
+          if (prev.some((r) => r.sessionId === evt.sessionId && r.seq === evt.seq)) {
+            return prev;
+          }
+          return [...prev, evt];
+        });
+      },
       onEvents: (evts) => setEvents(evts),
       onPresences: (p) => setPresences(p),
       onTools: (t) => setTools(t),
@@ -87,7 +107,7 @@ export const App: React.FC = () => {
       clearInterval(heartbeat);
       sub?.unsubscribe?.();
     };
-  }, [conn, activeRoomId, activeArtifactType]);
+  }, [conn, activeRoomId, activeArtifactType, userName]);
 
   // Handlers
   const handleSelectChatRoom = (id: string) => {
@@ -112,9 +132,14 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleSendMessage = (text: string) => {
-    if (!conn || !activeRoomId) return;
-    sendMessageWeb(conn, activeRoomId, DEFAULT_USER, text);
+  const handleSendMessage = async (text: string) => {
+    if (!conn) return;
+    let targetRoomId = activeRoomId;
+    if (!targetRoomId) {
+      targetRoomId = await createSessionWeb(conn, "General Workspace", "chat");
+      setActiveRoomId(targetRoomId);
+    }
+    await sendMessageWeb(conn, targetRoomId, userName, text);
   };
 
   const handleViewInChat = (sourceChatRoomId: string, sourceSeq: bigint) => {
@@ -141,6 +166,8 @@ export const App: React.FC = () => {
       isConnected={isConnected}
       presences={presences}
       artifacts={artifacts}
+      userName={userName}
+      onSetUserName={handleSetUserName}
     >
       <RoomSwitcher
         chatRooms={rooms.filter((r) => !r.roomType || r.roomType === "chat")}

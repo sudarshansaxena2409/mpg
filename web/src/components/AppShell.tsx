@@ -8,6 +8,8 @@ type Props = {
   isConnected: boolean;
   presences: SessionPresence[];
   artifacts: Artifact[];
+  userName: string;
+  onSetUserName: (name: string) => void;
   children: React.ReactNode;
 };
 
@@ -17,6 +19,8 @@ export const AppShell: React.FC<Props> = ({
   isConnected,
   presences,
   artifacts,
+  userName,
+  onSetUserName,
   children,
 }) => {
   return (
@@ -37,6 +41,25 @@ export const AppShell: React.FC<Props> = ({
           </div>
 
           <DesignHealthWidget artifacts={artifacts} />
+
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "var(--bg-elevated)", padding: "4px 8px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
+            <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>You:</span>
+            <input
+              type="text"
+              value={userName}
+              onChange={(e) => onSetUserName(e.target.value)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "var(--accent-blue)",
+                fontWeight: 700,
+                fontSize: "13px",
+                width: "90px",
+                outline: "none",
+              }}
+              placeholder="Your name..."
+            />
+          </div>
 
           <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
             {presences.map((p) => (
