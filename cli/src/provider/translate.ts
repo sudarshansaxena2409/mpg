@@ -17,7 +17,9 @@ const ARTIFACT_BLOCK_RE = /```mpg-artifact\s*([\s\S]*?)```/g;
 
 export class ProviderEventTranslator {
   private nextSeq: number;
-  private lastFinalText?: string;
+  private lastRawText?: string;
+  private lastBodyText?: string;
+  private recordedArtifactKeys = new Set<string>();
 
   constructor(
     private readonly conn: StdbConnection,
@@ -65,6 +67,16 @@ export class ProviderEventTranslator {
       return;
     }
 
+    // De-duplicate FIRST: some providers emit the same final text twice (e.g.
+    // as an assistant content block and again as a result). Dropping the
+    // duplicate here — before artifact extraction — prevents recording the
+    // same artifact into its room twice. Keyed on the raw text so identical
+    // turns (including their mpg-artifact blocks) are skipped wholesale.
+    if (event.text === this.lastRawText) {
+      return;
+    }
+    this.lastRawText = event.text;
+
     // Extract any mpg-artifact blocks: record each to its room, and remove
     // the block from the chat body so the transcript stays clean.
     const { cleaned, artifacts } = this.extractArtifacts(event.text);
@@ -78,13 +90,11 @@ export class ProviderEventTranslator {
       return;
     }
 
-    // De-duplicate: some providers emit the final text twice (e.g. as an
-    // assistant content block and again as a result). Skip an identical
-    // consecutive final message.
-    if (bodyText === this.lastFinalText) {
+    // Guard chat against near-duplicate final bodies (e.g. whitespace diffs).
+    if (bodyText === this.lastBodyText) {
       return;
     }
-    this.lastFinalText = bodyText;
+    this.lastBodyText = bodyText;
 
     const payload = { body: bodyText };
 
@@ -151,6 +161,14 @@ export class ProviderEventTranslator {
     status: string;
     stakeholders: Array<{ name: string; role: string }>;
   }) {
+    // Guard against recording the same artifact twice (e.g. if a provider
+    // re-emits a turn). Keyed on type + title.
+    const key = `${artifact.artifactType}::${artifact.title.trim().toLowerCase()}`;
+    if (this.recordedArtifactKeys.has(key)) {
+      return;
+    }
+    this.recordedArtifactKeys.add(key);
+
     await recordArtifact(this.conn, {
       artifactType: artifact.artifactType,
       title: artifact.title,
