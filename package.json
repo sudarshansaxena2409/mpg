@@ -9,6 +9,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx cli/src/index.ts",
+    "dev:web": "cd web && npm run dev",
+    "install:web": "cd web && npm install",
     "check": "tsc -p tsconfig.json --noEmit",
     "generate:bindings": "spacetime generate mpa --lang typescript -p spacetimedb -o cli/src/module_bindings -y && npm run postprocess:bindings",
     "publish:local": "spacetime publish -s local -p spacetimedb -y mpa",

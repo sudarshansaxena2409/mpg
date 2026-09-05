@@ -1,0 +1,131 @@
+import React from "react";
+import type { Artifact, RoomType, Stakeholder } from "../types.js";
+
+type Props = {
+  artifactType: RoomType;
+  artifacts: Artifact[];
+  onViewInChat: (sourceChatRoomId: string, sourceSeq: bigint) => void;
+  onResolveArtifact: (artifactId: string, newStatus: string) => void;
+};
+
+function parseStakeholders(json: string): Stakeholder[] {
+  try {
+    return JSON.parse(json);
+  } catch {
+    return [];
+  }
+}
+
+export const ArtifactRoomView: React.FC<Props> = ({
+  artifactType,
+  artifacts,
+  onViewInChat,
+  onResolveArtifact,
+}) => {
+  const filtered = artifacts.filter((a) => a.artifactType === artifactType);
+
+  const getStatusClass = (status: string) => {
+    switch (status.toUpperCase()) {
+      case "RESOLVED":
+      case "ACCEPTED":
+        return "status-resolved";
+      case "OPEN":
+      case "DISCUSSING":
+        return "status-open";
+      case "CONFLICT":
+      case "BLOCKER":
+        return "status-conflict";
+      default:
+        return "status-open";
+    }
+  };
+
+  return (
+    <div className="artifact-container">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+        <div>
+          <h3 style={{ fontSize: "18px", fontWeight: 600, textTransform: "capitalize" }}>
+            {artifactType.replace("_", " ")} Ledger
+          </h3>
+          <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "4px" }}>
+            Durable product state generated from live collaboration moments. Each entry links back to its source moment in chat.
+          </p>
+        </div>
+      </div>
+
+      {filtered.length === 0 && (
+        <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)", background: "var(--bg-surface)", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
+          No entries recorded for <strong>{artifactType}</strong> yet.
+          <br />
+          Use the <strong>Golden Demo Seeder</strong> in the bottom right to populate simulated artifacts and watch Design Health climb!
+        </div>
+      )}
+
+      <div className="artifact-grid">
+        {filtered.map((item) => {
+          const stakeholders = parseStakeholders(item.stakeholdersJson);
+          const isResolved = item.status === "RESOLVED" || item.status === "ACCEPTED";
+          return (
+            <div key={item.id} className="artifact-card">
+              <div>
+                <div className="artifact-card-header">
+                  <h4 className="artifact-title">{item.title}</h4>
+                  <span className={`status-pill ${getStatusClass(item.status)}`}>
+                    {item.status}
+                  </span>
+                </div>
+                <p className="artifact-desc" style={{ marginTop: "8px" }}>
+                  {item.description}
+                </p>
+              </div>
+
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", margin: "10px 0" }}>
+                  <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>Stakeholders:</span>
+                  {stakeholders.map((s) => (
+                    <span
+                      key={s.name}
+                      style={{
+                        fontSize: "11px",
+                        background: "var(--bg-elevated)",
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      {s.name} ({s.role})
+                    </span>
+                  ))}
+                </div>
+
+                <div className="artifact-meta">
+                  <button
+                    className="btn-deep-link"
+                    onClick={() => onViewInChat(item.sourceChatRoomId, item.sourceSeq)}
+                  >
+                    ↧ view in chat (seq #{String(item.sourceSeq)})
+                  </button>
+
+                  <button
+                    style={{
+                      background: "transparent",
+                      border: "1px solid var(--border-color)",
+                      color: isResolved ? "var(--accent-amber)" : "var(--accent-green)",
+                      padding: "4px 8px",
+                      borderRadius: "4px",
+                      fontSize: "11px",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => onResolveArtifact(item.id, isResolved ? "OPEN" : "RESOLVED")}
+                  >
+                    {isResolved ? "Mark Open" : "Mark Resolved ✓"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};

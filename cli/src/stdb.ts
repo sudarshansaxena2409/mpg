@@ -149,6 +149,35 @@ export function rejectToolCall(conn: StdbConnection, invocationId: string) {
   return conn.reducers.rejectToolCall({ invocationId });
 }
 
+export function recordArtifact(
+  conn: StdbConnection,
+  params: {
+    artifactType: string;
+    title: string;
+    description: string;
+    status: string;
+    stakeholdersJson: string;
+    sourceChatRoomId: string;
+    sourceSeq: number | bigint;
+    createdBy: string;
+  }
+) {
+  return conn.reducers.recordArtifact({
+    artifactType: params.artifactType,
+    title: params.title,
+    description: params.description,
+    status: params.status,
+    stakeholdersJson: params.stakeholdersJson,
+    sourceChatRoomId: params.sourceChatRoomId,
+    sourceSeq: BigInt(params.sourceSeq),
+    createdBy: params.createdBy,
+  });
+}
+
+export function resolveArtifact(conn: StdbConnection, artifactId: string, status: string) {
+  return conn.reducers.resolveArtifact({ artifactId, status });
+}
+
 export function updateSessionStatus(
   conn: StdbConnection,
   sessionId: string,

@@ -30,6 +30,9 @@ npm install --quiet
 echo -e "${YELLOW}📦 Installing SpacetimeDB dependencies...${NC}"
 (cd spacetimedb && npm install --quiet)
 
+echo -e "${YELLOW}📦 Installing Web UI dependencies...${NC}"
+(cd web && npm install --quiet)
+
 # 3. Type check & build
 echo -e "\n${YELLOW}🛠 Building project...${NC}"
 npm run build --quiet
@@ -37,6 +40,11 @@ echo -e "${GREEN}✓ Build completed successfully!${NC}\n"
 
 # 4. Handle direct command arguments if passed (e.g. ./setup.sh join <session_id> --as alice)
 if [ "$#" -gt 0 ]; then
+    if [ "$1" = "web" ]; then
+        echo -e "${GREEN}🌐 Launching Web UI workspace...${NC}\n"
+        npm run dev:web
+        exit 0
+    fi
     echo -e "${GREEN}🚀 Launching MPA session with provided arguments...${NC}\n"
     npm run dev -- "$@"
     exit 0
@@ -44,14 +52,19 @@ fi
 
 # 5. Interactive Mode
 echo -e "${CYAN}How would you like to proceed?${NC}"
-echo "  1) Join an existing session (Collaborator)"
-echo "  2) Host a new session (Host)"
-echo "  3) Setup only (Exit)"
+echo "  1) Launch Web UI Workspace (Browser Client)"
+echo "  2) Join an existing CLI session (Collaborator)"
+echo "  3) Host a new CLI session (Host)"
+echo "  4) Setup only (Exit)"
 echo ""
-read -p "Select option (1-3): " CHOICE
+read -p "Select option (1-4): " CHOICE
 
 case "$CHOICE" in
     1)
+        echo -e "\n${GREEN}🌐 Launching Web UI at http://localhost:5173 ...${NC}\n"
+        npm run dev:web
+        ;;
+    2)
         read -p "Enter Session ID to join: " SESSION_ID
         read -p "Enter your name (e.g. alice): " USER_NAME
         if [ -z "$SESSION_ID" ] || [ -z "$USER_NAME" ]; then
@@ -61,7 +74,7 @@ case "$CHOICE" in
         echo -e "\n${GREEN}🔗 Joining session '${SESSION_ID}' as '${USER_NAME}'...${NC}\n"
         npm run dev -- join "$SESSION_ID" --as "$USER_NAME"
         ;;
-    2)
+    3)
         read -p "Enter session title: " SESSION_TITLE
         read -p "Enter your name (e.g. shub): " USER_NAME
         SESSION_TITLE=${SESSION_TITLE:-"Pairing Session"}
@@ -75,9 +88,10 @@ case "$CHOICE" in
         echo -e "\n${GREEN}👑 Creating new session '${SESSION_TITLE}' as '${USER_NAME}'...${NC}\n"
         npm run dev -- new "$SESSION_TITLE" --as "$USER_NAME"
         ;;
-    3)
+    4)
         echo -e "${GREEN}✓ Setup complete! You are ready to run mpa.${NC}"
-        echo "Example join command: npm run dev -- join <session-id> --as alice"
+        echo "Launch Web UI: npm run dev:web"
+        echo "Join CLI session: npm run dev -- join <session-id> --as alice"
         ;;
     *)
         echo -e "${RED}Invalid choice. Exiting.${NC}"

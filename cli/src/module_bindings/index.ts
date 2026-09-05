@@ -41,13 +41,16 @@ import HeartbeatPresenceReducer from "./heartbeat_presence_reducer.js";
 import JoinPresenceReducer from "./join_presence_reducer.js";
 import LeavePresenceReducer from "./leave_presence_reducer.js";
 import ProposeToolCallReducer from "./propose_tool_call_reducer.js";
+import RecordArtifactReducer from "./record_artifact_reducer.js";
 import RejectToolCallReducer from "./reject_tool_call_reducer.js";
+import ResolveArtifactReducer from "./resolve_artifact_reducer.js";
 import SendMessageReducer from "./send_message_reducer.js";
 import UpdateSessionStatusReducer from "./update_session_status_reducer.js";
 
 // Import all procedure arg schemas
 
 // Import all table schema definitions
+import ArtifactRow from "./artifact_table.js";
 import EventRow from "./event_table.js";
 import SessionRow from "./session_table.js";
 import SessionPresenceRow from "./session_presence_table.js";
@@ -57,6 +60,16 @@ import ToolInvocationRow from "./tool_invocation_table.js";
 
 /** The schema information for all tables in this module. This is defined the same was as the tables would have been defined in the server. */
 const tablesSchema = __schema({
+  artifact: __table({
+    name: 'Artifact',
+    indexes: [
+      { accessor: 'id', name: 'Artifact_id_idx_btree', algorithm: 'btree', columns: ['id'] },
+      { accessor: 'artifactType', name: 'Artifact_artifact_type_idx_btree', algorithm: 'btree', columns: ['artifactType'] },
+    ],
+    constraints: [
+      { name: 'Artifact_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ArtifactRow),
   event: __table({
     name: 'Event',
     indexes: [
@@ -118,7 +131,9 @@ const reducersSchema = __reducers(
   __reducerSchema("join_presence", JoinPresenceReducer),
   __reducerSchema("leave_presence", LeavePresenceReducer),
   __reducerSchema("propose_tool_call", ProposeToolCallReducer),
+  __reducerSchema("record_artifact", RecordArtifactReducer),
   __reducerSchema("reject_tool_call", RejectToolCallReducer),
+  __reducerSchema("resolve_artifact", ResolveArtifactReducer),
   __reducerSchema("send_message", SendMessageReducer),
   __reducerSchema("update_session_status", UpdateSessionStatusReducer),
 );

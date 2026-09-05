@@ -6,6 +6,7 @@ const session = table(
   {
     id: t.string().primaryKey(),
     title: t.string(),
+    roomType: t.string(),
     status: t.string(),
     createdAt: t.timestamp(),
   }
@@ -60,7 +61,23 @@ const sessionPresence = table(
   }
 );
 
-const spacetimedb = schema({ session, event, toolInvocation, sessionPresence });
+const artifact = table(
+  { name: "Artifact", public: true },
+  {
+    id: t.string().primaryKey(),
+    artifactType: t.string().index("btree"),
+    title: t.string(),
+    description: t.string(),
+    status: t.string(),
+    stakeholdersJson: t.string(),
+    sourceChatRoomId: t.string(),
+    sourceSeq: t.u64(),
+    createdBy: t.string(),
+    createdAt: t.timestamp(),
+  }
+);
+
+const spacetimedb = schema({ session, event, toolInvocation, sessionPresence, artifact });
 export default spacetimedb;
 
 function makeId(prefix: string, _ctx: { timestamp: unknown }, count: number | bigint) {
@@ -101,15 +118,67 @@ function assertEventType(eventType: string) {
 }
 
 export const createSession = spacetimedb.reducer(
-  { title: t.string() },
-  (ctx, { title }) => {
+  { title: t.string(), roomType: t.option(t.string()) },
+  (ctx, { title, roomType }) => {
     const id = makeId("session", ctx, ctx.db.session.count());
     ctx.db.session.insert({
       id,
       title,
+      roomType: roomType ?? "chat",
       status: "running",
       createdAt: ctx.timestamp,
     });
+  }
+);
+
+export const recordArtifact = spacetimedb.reducer(
+  {
+    artifactType: t.string(),
+    title: t.string(),
+    description: t.string(),
+    status: t.string(),
+    stakeholdersJson: t.string(),
+    sourceChatRoomId: t.string(),
+    sourceSeq: t.u64(),
+    createdBy: t.string(),
+  },
+  (
+    ctx,
+    {
+      artifactType,
+      title,
+      description,
+      status,
+      stakeholdersJson,
+      sourceChatRoomId,
+      sourceSeq,
+      createdBy,
+    }
+  ) => {
+    const id = makeId("artifact", ctx, ctx.db.artifact.count());
+    ctx.db.artifact.insert({
+      id,
+      artifactType,
+      title,
+      description,
+      status,
+      stakeholdersJson,
+      sourceChatRoomId,
+      sourceSeq,
+      createdBy,
+      createdAt: ctx.timestamp,
+    });
+  }
+);
+
+export const resolveArtifact = spacetimedb.reducer(
+  { artifactId: t.string(), status: t.string() },
+  (ctx, { artifactId, status }) => {
+    const row = ctx.db.artifact.id.find(artifactId);
+    if (!row) {
+      throw new Error(`Unknown artifact: ${artifactId}`);
+    }
+    ctx.db.artifact.id.update({ ...row, status });
   }
 );
 
