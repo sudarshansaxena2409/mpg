@@ -208,6 +208,7 @@ export const App: React.FC = () => {
           <ArtifactRoomView
             artifactType={activeArtifactType}
             artifacts={artifacts}
+            rooms={rooms}
             onViewInChat={handleViewInChat}
             onResolveArtifact={handleResolveArtifact}
           />

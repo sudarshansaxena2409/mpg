@@ -696,3 +696,20 @@ body {
   cursor: pointer;
 }
 .btn-ghost:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+/* Artifact grouping by project */
+.artifact-group { margin-bottom: 22px; }
+.artifact-group-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0 8px; margin-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+.artifact-group-icon { font-size: 13px; }
+.artifact-group-title {
+  font-size: 13px; font-weight: 700; color: var(--accent-blue);
+  letter-spacing: 0.3px;
+}
+.artifact-group-count {
+  margin-left: auto; font-size: 11px; color: var(--text-muted);
+  background: var(--bg-elevated); border-radius: 10px; padding: 1px 8px;
+}
