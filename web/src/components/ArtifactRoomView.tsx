@@ -107,14 +107,44 @@ export const ArtifactRoomView: React.FC<Props> = ({
 
       <div className="artifact-groups">
         {[...groups.entries()].map(([project, items]) => (
-          <section key={project} className="artifact-group">
-            <div className="artifact-group-header">
-              <span className="artifact-group-icon">💬</span>
-              <span className="artifact-group-title">{project}</span>
-              <span className="artifact-group-count">{items.length}</span>
-            </div>
-            <div className="artifact-grid">
-              {items.map((item) => {
+          <ArtifactGroup
+            key={project}
+            project={project}
+            items={items}
+            getStatusClass={getStatusClass}
+            onViewInChat={onViewInChat}
+            onResolveArtifact={onResolveArtifact}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ArtifactGroup: React.FC<{
+  project: string;
+  items: Artifact[];
+  getStatusClass: (s: string) => string;
+  onViewInChat: (sourceChatRoomId: string, sourceSeq: bigint) => void;
+  onResolveArtifact: (artifactId: string, newStatus: string) => void;
+}> = ({ project, items, getStatusClass, onViewInChat, onResolveArtifact }) => {
+  const [collapsed, setCollapsed] = useState(false);
+  return (
+    <section className="artifact-group">
+      <button
+        type="button"
+        className="artifact-group-header"
+        onClick={() => setCollapsed((v) => !v)}
+        aria-expanded={!collapsed}
+      >
+        <span className={`artifact-group-caret ${collapsed ? "collapsed" : ""}`}>▾</span>
+        <span className="artifact-group-icon">💬</span>
+        <span className="artifact-group-title">{project}</span>
+        <span className="artifact-group-count">{items.length}</span>
+      </button>
+      {!collapsed && (
+        <div className="artifact-grid">
+          {items.map((item) => {
           const stakeholders = parseStakeholders(item.stakeholdersJson);
           const isResolved = item.status === "RESOLVED" || item.status === "ACCEPTED";
           return (
@@ -174,11 +204,9 @@ export const ArtifactRoomView: React.FC<Props> = ({
               </div>
             </div>
           );
-              })}
-            </div>
-          </section>
-        ))}
-      </div>
-    </div>
+          })}
+        </div>
+      )}
+    </section>
   );
 };
