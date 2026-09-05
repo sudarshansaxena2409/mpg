@@ -10,6 +10,9 @@ export class ClaudeAdapter implements ProviderAdapter {
   private child?: ChildProcessWithoutNullStreams;
   private sessionId?: string;
   private callbacks = new Set<(e: NormalizedProviderEvent) => void>();
+  private warmingUp = false;
+  private warmupResolve?: () => void;
+  private warmupTimeout?: ReturnType<typeof setTimeout>;
 
   onEvent(cb: (e: NormalizedProviderEvent) => void) {
     this.callbacks.add(cb);
@@ -46,6 +49,46 @@ export class ClaudeAdapter implements ProviderAdapter {
         this.emit({ kind: "tool_result", toolName: "claude.stderr", result: text });
       }
     });
+
+    // Warm up: Claude Code has a multi-second cold start that only begins when
+    // the first turn is written. Trigger it now (during session setup) with a
+    // silent no-op turn and wait for its result, so the user's first real
+    // message gets a fast response instead of paying the boot cost. No onEvent
+    // listeners are attached yet, so this warm-up output is not recorded.
+    await this.warmup();
+  }
+
+  private warmup(): Promise<void> {
+    return new Promise((resolve) => {
+      if (!this.child) {
+        resolve();
+        return;
+      }
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        this.warmingUp = false;
+        resolve();
+      };
+      // Resolve on the first result event (turn complete) or a safety timeout.
+      this.warmupResolve = done;
+      this.warmingUp = true;
+      const timeout = setTimeout(done, 30000);
+      this.warmupTimeout = timeout;
+
+      this.child.stdin.write(
+        `${JSON.stringify({
+          type: "user",
+          message: {
+            role: "user",
+            content:
+              "Reply with exactly: READY. Do not say anything else. This is a system warm-up.",
+          },
+          parent_tool_use_id: null,
+        })}\n`
+      );
+    });
   }
 
   async sendUserTurn(text: string) {
@@ -74,6 +117,15 @@ export class ClaudeAdapter implements ProviderAdapter {
     try {
       msg = JSON.parse(line);
     } catch {
+      return;
+    }
+
+    // While warming up, swallow all output and resolve on turn completion.
+    if (this.warmingUp) {
+      if (msg.type === "result") {
+        if (this.warmupTimeout) clearTimeout(this.warmupTimeout);
+        this.warmupResolve?.();
+      }
       return;
     }
 
