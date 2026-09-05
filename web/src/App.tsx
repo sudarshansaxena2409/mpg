@@ -54,6 +54,9 @@ export const App: React.FC = () => {
   const [tools, setTools] = useState<ToolInvocation[]>([]);
   const [agentThinking, setAgentThinking] = useState(false);
   const thinkingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Agent-message count captured when the local user sends; thinking clears
+  // only once the agent count rises above this baseline (a genuinely new reply).
+  const agentBaselineRef = useRef<number | null>(null);
 
   const clientIdRef = useRef(`web-${Math.random().toString(36).slice(2, 8)}`);
 
@@ -99,19 +102,20 @@ export const App: React.FC = () => {
 
     const sub = subscribeChatRoom(conn, activeRoomId, {
       onEvents: (evts) => {
-        setEvents((prev) => {
-          // If a new agent message arrived, the agent has finished thinking.
-          const hadAgent = prev.some((e) => e.authorType === "agent");
-          const hasAgent = evts.some((e) => e.authorType === "agent");
-          const newAgentMessage =
-            evts.filter((e) => e.authorType === "agent").length >
-            prev.filter((e) => e.authorType === "agent").length;
-          if (newAgentMessage || (hasAgent && !hadAgent)) {
+        setEvents(evts);
+        // Clear the thinking indicator only when a genuinely new agent reply
+        // arrives — i.e. the agent-message count exceeds the baseline captured
+        // when the user sent their message. Guards against the subscription's
+        // initial full-snapshot (which already contains prior agent messages)
+        // clearing the indicator too early.
+        if (agentBaselineRef.current !== null) {
+          const agentCount = evts.filter((e) => e.authorType === "agent").length;
+          if (agentCount > agentBaselineRef.current) {
             setAgentThinking(false);
+            agentBaselineRef.current = null;
             if (thinkingTimeoutRef.current) clearTimeout(thinkingTimeoutRef.current);
           }
-          return evts;
-        });
+        }
       },
       onPresences: (p) => setPresences(p),
       onTools: (t) => setTools(t),
@@ -129,6 +133,7 @@ export const App: React.FC = () => {
     setActiveRoomId(id);
     setHighlightSeq(null);
     setAgentThinking(false);
+    agentBaselineRef.current = null;
     if (thinkingTimeoutRef.current) clearTimeout(thinkingTimeoutRef.current);
   };
 
@@ -151,11 +156,16 @@ export const App: React.FC = () => {
   const handleSendMessage = (text: string) => {
     if (!conn || !activeRoomId) return;
     sendMessageWeb(conn, activeRoomId, DEFAULT_USER, text);
-    // Show the agent "thinking" indicator until its reply arrives.
+    // Baseline the current agent-message count; thinking clears when a new
+    // agent reply pushes the count above this.
+    agentBaselineRef.current = events.filter((e) => e.authorType === "agent").length;
     setAgentThinking(true);
     if (thinkingTimeoutRef.current) clearTimeout(thinkingTimeoutRef.current);
     // Safety net: never spin forever if no agent is attached to this room.
-    thinkingTimeoutRef.current = setTimeout(() => setAgentThinking(false), 90000);
+    thinkingTimeoutRef.current = setTimeout(() => {
+      setAgentThinking(false);
+      agentBaselineRef.current = null;
+    }, 180000);
   };
 
   const handleViewInChat = (sourceChatRoomId: string, sourceSeq: bigint) => {
