@@ -18,8 +18,26 @@ import { ChatRoomView } from "./components/ChatRoomView.js";
 import { ArtifactRoomView } from "./components/ArtifactRoomView.js";
 import { DemoSeeder } from "./components/DemoSeeder.js";
 
-const DEFAULT_USER = "Sudarshan";
-const DEFAULT_ROLE = "Dev";
+// Identity is per-browser: set via URL query params, e.g.
+//   ?as=Jyoti&role=PM
+// Falls back to a generic guest so the app never shows someone else's name.
+function readIdentity(): { user: string; role: string } {
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const user = p.get("as")?.trim();
+    const role = p.get("role")?.trim();
+    return {
+      user: user && user.length > 0 ? user : "Guest",
+      role: role && role.length > 0 ? role : "Dev",
+    };
+  } catch {
+    return { user: "Guest", role: "Dev" };
+  }
+}
+
+const IDENTITY = readIdentity();
+const DEFAULT_USER = IDENTITY.user;
+const DEFAULT_ROLE = IDENTITY.role;
 
 export const App: React.FC = () => {
   const [conn, setConn] = useState<any>(null);
