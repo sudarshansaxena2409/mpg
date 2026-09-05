@@ -29,12 +29,20 @@ export const RoomSwitcher: React.FC<Props> = ({
   onCreateRoom,
 }) => {
   const [newTitle, setNewTitle] = React.useState("");
+  const [creating, setCreating] = React.useState(false);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  const openCreate = () => {
+    setCreating(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
     onCreateRoom(newTitle.trim());
     setNewTitle("");
+    setCreating(false);
   };
 
   const getArtifactCount = (type: RoomType) => {
@@ -43,11 +51,53 @@ export const RoomSwitcher: React.FC<Props> = ({
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-header">
+      <div className="sidebar-header sidebar-header-row">
         <span>Workspace Rooms</span>
+        <button
+          type="button"
+          className="new-project-icon-btn"
+          onClick={openCreate}
+          title="Start a new project (creates a live chat room)"
+        >
+          + New Project
+        </button>
       </div>
 
       <div className="sidebar-menu">
+        {creating && (
+          <form onSubmit={handleCreate} className="new-project-inline">
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Project name, e.g. Reviews and Ratings"
+              className="composer-input new-project-input"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setCreating(false);
+                  setNewTitle("");
+                }
+              }}
+            />
+            <div className="new-project-actions">
+              <button type="submit" className="btn-primary" disabled={!newTitle.trim()}>
+                Create
+              </button>
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => {
+                  setCreating(false);
+                  setNewTitle("");
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+
         <div className="menu-category">Chat Rooms (Live)</div>
         {chatRooms.map((room) => {
           const isActive = activeRoomId === room.id && !activeArtifactType;
@@ -89,17 +139,6 @@ export const RoomSwitcher: React.FC<Props> = ({
           );
         })}
       </div>
-
-      <form onSubmit={handleCreate} style={{ padding: "12px", borderTop: "1px solid var(--border-color)" }}>
-        <input
-          type="text"
-          placeholder="+ New Chat Room"
-          className="composer-input"
-          style={{ width: "100%", fontSize: "12px", padding: "8px 10px" }}
-          value={newTitle}
-          onChange={(e) => setNewTitle(e.target.value)}
-        />
-      </form>
     </aside>
   );
 };
