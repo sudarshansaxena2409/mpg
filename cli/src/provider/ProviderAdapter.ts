@@ -6,7 +6,7 @@ export interface ProviderAdapter {
 }
 
 export type NormalizedProviderEvent =
-  | { kind: "message"; text: string }
+  | { kind: "message"; text: string; streaming?: boolean }
   | {
       kind: "tool_call";
       toolName: string;

@@ -103,7 +103,7 @@ export class ClaudeAdapter implements ProviderAdapter {
       msg.event?.delta?.type === "text_delta" &&
       msg.event.delta.text
     ) {
-      this.emit({ kind: "message", text: msg.event.delta.text });
+      this.emit({ kind: "message", text: msg.event.delta.text, streaming: true });
     }
 
     if (msg.type === "result" && msg.result) {

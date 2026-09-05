@@ -5,6 +5,7 @@ import type { NormalizedProviderEvent } from "./ProviderAdapter.js";
 
 export class ProviderEventTranslator {
   private nextSeq: number;
+  private lastFinalText?: string;
 
   constructor(
     private readonly conn: StdbConnection,
@@ -35,17 +36,39 @@ export class ProviderEventTranslator {
       return;
     }
 
-    const payload =
-      event.kind === "message"
-        ? { body: event.text }
-        : { toolName: event.toolName, result: event.result };
+    // Suppress intermediate agent noise so the transcript shows only the
+    // final result of a turn:
+    //  - streaming message fragments (text deltas) are not persisted; the
+    //    final assistant message arrives as a non-streaming message event.
+    //  - tool_result events are execution detail, not conversation.
+    if (event.kind === "tool_result") {
+      return;
+    }
+    if (event.kind === "message" && event.streaming) {
+      return;
+    }
+
+    // Skip empty final messages.
+    if (event.kind === "message" && event.text.trim().length === 0) {
+      return;
+    }
+
+    // De-duplicate: some providers emit the final text twice (e.g. as an
+    // assistant content block and again as a result). Skip an identical
+    // consecutive final message.
+    if (event.text === this.lastFinalText) {
+      return;
+    }
+    this.lastFinalText = event.text;
+
+    const payload = { body: event.text };
 
     await appendAgentEvent(
       this.conn,
       this.sessionId,
       this.nextSeq++,
       this.authorName,
-      event.kind,
+      "message",
       JSON.stringify(payload)
     );
   }
