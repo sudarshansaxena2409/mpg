@@ -57,7 +57,7 @@ export const ArtifactRoomView: React.FC<Props> = ({
         <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)", background: "var(--bg-surface)", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
           No entries recorded for <strong>{artifactType}</strong> yet.
           <br />
-          Use the <strong>Golden Demo Seeder</strong> in the bottom right to populate simulated artifacts and watch Design Health climb!
+          As the team and AI facilitator finalize {artifactType.replace("_", " ")} in chat, entries appear here automatically — each with its stakeholders and a link back to the source discussion.
         </div>
       )}
 
