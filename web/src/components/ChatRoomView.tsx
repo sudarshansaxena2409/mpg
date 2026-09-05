@@ -39,6 +39,22 @@ function getSemanticBadge(event: SessionEvent) {
   return <span className="badge-semantic badge-discussion">💬 Discussion</span>;
 }
 
+function MessageBody({ body }: { body: string }) {
+  const [open, setOpen] = useState(false);
+  const isLong = body.length > 280 || body.split("\n").length > 4;
+  const shown = !isLong || open ? body : body.slice(0, 280).trimEnd() + "…";
+  return (
+    <div className="message-body markdown-body">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{shown}</ReactMarkdown>
+      {isLong && (
+        <button className="view-more-btn" onClick={() => setOpen((v) => !v)}>
+          {open ? "▲ view less" : "▾ view more"}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export const ChatRoomView: React.FC<Props> = ({
   events,
   presences,
@@ -112,9 +128,7 @@ export const ChatRoomView: React.FC<Props> = ({
                 </div>
                 <span className="seq-tag">seq #{String(evt.seq)}</span>
               </div>
-              <div className="message-body markdown-body">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
-              </div>
+              <MessageBody body={body} />
             </div>
           );
         })}

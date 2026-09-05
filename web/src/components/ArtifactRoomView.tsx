@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import type { Artifact, RoomType, Stakeholder } from "../types.js";
 
 type Props = {
@@ -15,6 +15,35 @@ function parseStakeholders(json: string): Stakeholder[] {
     return [];
   }
 }
+
+// Description may carry an optional longer detail after a unit-separator.
+function splitDescription(desc: string): { summary: string; detail?: string } {
+  const idx = desc.indexOf("\u241f");
+  if (idx === -1) return { summary: desc };
+  return { summary: desc.slice(0, idx), detail: desc.slice(idx + 1) };
+}
+
+const ArtifactDescription: React.FC<{ description: string }> = ({ description }) => {
+  const [open, setOpen] = useState(false);
+  const { summary, detail } = splitDescription(description);
+  return (
+    <>
+      <p className="artifact-desc" style={{ marginTop: "8px" }}>
+        {summary}
+        {detail && open ? (
+          <span style={{ display: "block", marginTop: "6px", color: "var(--text-secondary)" }}>
+            {detail}
+          </span>
+        ) : null}
+      </p>
+      {detail && (
+        <button className="view-more-btn" onClick={() => setOpen((v) => !v)}>
+          {open ? "▲ view less" : "▾ view more"}
+        </button>
+      )}
+    </>
+  );
+};
 
 export const ArtifactRoomView: React.FC<Props> = ({
   artifactType,
@@ -74,9 +103,7 @@ export const ArtifactRoomView: React.FC<Props> = ({
                     {item.status}
                   </span>
                 </div>
-                <p className="artifact-desc" style={{ marginTop: "8px" }}>
-                  {item.description}
-                </p>
+                <ArtifactDescription description={item.description} />
               </div>
 
               <div>

@@ -624,3 +624,15 @@ body {
 .markdown-body th { background: var(--bg-elevated, rgba(255,255,255,0.05)); font-weight: 600; }
 .markdown-body strong { font-weight: 600; }
 .markdown-body hr { border: none; border-top: 1px solid var(--border-color, #2a2f3a); margin: 10px 0; }
+
+/* View more / less toggle */
+.view-more-btn {
+  background: none;
+  border: none;
+  color: var(--accent-blue, #3b82f6);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 0 0;
+  font-weight: 500;
+}
+.view-more-btn:hover { text-decoration: underline; }

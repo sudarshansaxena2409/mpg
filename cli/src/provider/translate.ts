@@ -138,7 +138,13 @@ export class ProviderEventTranslator {
           artifacts.push({
             artifactType: parsed.artifactType,
             title: String(parsed.title),
-            description: String(parsed.description ?? ""),
+            // Fold an optional longer "detail" into the description using a
+            // delimiter the UI splits on for "view more". Keeps the short
+            // summary first so the ledger stays scannable.
+            description:
+              typeof parsed.detail === "string" && parsed.detail.trim()
+                ? `${String(parsed.description ?? "")}\u241f${parsed.detail.trim()}`
+                : String(parsed.description ?? ""),
             status: String(parsed.status ?? "OPEN"),
             stakeholders: Array.isArray(parsed.stakeholders)
               ? parsed.stakeholders
@@ -167,6 +173,22 @@ export class ProviderEventTranslator {
     if (this.recordedArtifactKeys.has(key)) {
       return;
     }
+
+    // Robust guard: also skip if an artifact with the same type+title already
+    // exists in the subscribed cache. This survives host restarts and catches
+    // the case where more than one agent process is attached to the session.
+    try {
+      for (const row of this.conn.db.artifact.iter()) {
+        const existingKey = `${row.artifactType}::${String(row.title).trim().toLowerCase()}`;
+        if (existingKey === key) {
+          this.recordedArtifactKeys.add(key);
+          return;
+        }
+      }
+    } catch {
+      // Cache may not be ready; fall back to in-memory guard only.
+    }
+
     this.recordedArtifactKeys.add(key);
 
     await recordArtifact(this.conn, {
